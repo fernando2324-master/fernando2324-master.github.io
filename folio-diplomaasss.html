@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación de Base de Datos - Academia de Negocios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e3f2fd;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .highlight {
+            background-color: #fffde7;
+        }
+        .qr-section {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        #qrcode {
+            display: inline-block;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            margin: 15px 0;
+        }
+        .verification-status {
+            text-align: center;
+        }
+        .download-qr {
+            margin-top: 10px;
+            background-color: #27ae60;
+        }
+        .download-qr:hover {
+            background-color: #219653;
+        }
+    </style>
+    <!-- Librería para generar QR -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Verificación de Base de Datos - Academia de Negocios "Alta Pinta"</h1>
+        
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Buscar por nombre, CURP o folio...">
+                <button onclick="searchData()">Buscar</button>
+                <button onclick="clearSearch()">Limpiar</button>
+            </div>
+            <div>
+                <button onclick="exportToExcel()">Exportar a Excel</button>
+            </div>
+        </div>
+        
+        <div class="summary">
+            <p><strong>Total de registros:</strong> <span id="totalRecords">50</span> | <strong>Verificados:</strong> <span id="verifiedCount">0</span></p>
+            <p><strong>Institución:</strong> Academia de negocios "Alta pinta"</p>
+            <p><strong>Rango de fechas:</strong> 2025-05-25 al 2025-07-13</p>
+        </div>
+        
+        <div style="overflow-x: auto; max-height: 600px;">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>NOMBRE</th>
+                        <th>CURP</th>
+                        <th>INSTITUCIÓN</th>
+                        <th>FECHA</th>
+                        <th>FOLIO</th>
+                        <th class="verification-status">Verificado</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Los datos se cargarán aquí con JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección del código QR -->
+        <div class="qr-section">
+            <h3>Acceso rápido con QR</h3>
+            <div id="qrcode"></div>
+            <button onclick="downloadQR()" class="download-qr">Descargar QR</button>
+            <p>Escanea este código con tu móvil para acceder directamente</p>
+        </div>
+    </div>
+
+    <script>
+        // Datos de la base de datos
+        const database = [
+            { nombre: "Juan Pérez García", curp: "PEGJ800101HDFRRN01", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-25", folio: "2056" },
+            { nombre: "Carlos López Martínez", curp: "LOMC850505HMCPRR02", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-26", folio: "2058" },
+            { nombre: "Miguel Ángel Soto Ruiz", curp: "SORM900909HDFTZG03", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-27", folio: "2060" },
+            { nombre: "José Hernández Díaz", curp: "HEDJ750303HPLRZS04", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-28", folio: "2062" },
+            { nombre: "Luis Fernando Mora Reyes", curp: "MORL920707HDFYRS05", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-29", folio: "2064" },
+            { nombre: "Roberto Jiménez Vargas", curp: "JIVR830606HMCMSG06", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-30", folio: "2066" },
+            { nombre: "Eduardo Castro Méndez", curp: "CAME701212HDFSND07", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-05-31", folio: "2068" },
+            { nombre: "Jorge Domínguez Silva", curp: "DOSJ881111HDFMLR08", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-01", folio: "2070" },
+            { nombre: "Ricardo Navarro Flores", curp: "NAFR760404HDFVLC09", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-02", folio: "2072" },
+            { nombre: "Fernando Ríos Ortega", curp: "RIOF951010HDFSRR10", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-03", folio: "2074" },
+            { nombre: "María González López", curp: "GOLM820606MDFRPR01", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-04", folio: "2076" },
+            { nombre: "Ana Patricia Ramírez Sánchez", curp: "RASA900808MMCMNN02", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-05", folio: "2078" },
+            { nombre: "Laura Méndez Cruz", curp: "MECL940303MDFNRR03", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-06", folio: "2080" },
+            { nombre: "Sofía Díaz Mendoza", curp: "DIMS870707MDFZNF04", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-07", folio: "2082" },
+            { nombre: "Gabriela Torres Reyes", curp: "TORG950101MDFYGB05", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-08", folio: "2084" },
+            { nombre: "Adriana Guerrero Ruiz", curp: "GURA880909MDFRZD06", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-09", folio: "2086" },
+            { nombre: "Claudia Pineda Álvarez", curp: "PIAC920202MDFNLL07", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-10", folio: "2088" },
+            { nombre: "Diana Flores Ortega", curp: "FOOD760504MDFLRD08", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-11", folio: "2090" },
+            { nombre: "Patricia Vega Mendoza", curp: "VEMP891212MDFGDT09", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-12", folio: "2092" },
+            { nombre: "Lucía Medina Castro", curp: "VEMP891212MDFGDT09", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-13", folio: "2094" },
+            { nombre: "Alexis Campos Rojas", curp: "CARA801010HDFMJS01", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-14", folio: "2096" },
+            { nombre: "Alexis Valencia Mora", curp: "VAMA930303MDFLRA02", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-15", folio: "2098" },
+            { nombre: "Francisco Javier Ruiz", curp: "RURF700707HDFZXC03", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-16", folio: "2100" },
+            { nombre: "María José Sánchez", curp: "SAMJ990909MDFNNS04", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-17", folio: "2102" },
+            { nombre: "Alejandro Duarte Reyes", curp: "DURA000101HDFYJL05", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-18", folio: "2104" },
+            { nombre: "Oscar Mendoza Pacheco", curp: "MEPO911212HDFNCS26", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-19", folio: "2106" },
+            { nombre: "Raúl Vargas Herrera", curp: "VAHR770707HDFRRL27", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-20", folio: "2108" },
+            { nombre: "Daniel Romero Salazar", curp: "ROSD860606HDFMLN28", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-21", folio: "2110" },
+            { nombre: "Andrés Rojas Campos", curp: "ROCA990909HDFSND29", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-22", folio: "2112" },
+            { nombre: "Sergio Núñez Delgado", curp: "NUDS800808HDFZLR30", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-23", folio: "2114" },
+            { nombre: "Arturo Medina Solís", curp: "MESA750505HDFDLR31", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-24", folio: "2116" },
+            { nombre: "Felipe Ortega Luna", curp: "OELF880808HDFRPL32", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-25", folio: "2118" },
+            { nombre: "Javier Cortés Miranda", curp: "COMJ701212HDFRVR33", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-26", folio: "2120" },
+            { nombre: "Héctor Suárez Gil", curp: "SUGH951010HDFRLT34", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-27", folio: "2122" },
+            { nombre: "Alberto Reyes Ponce", curp: "REPA820202HDFYNB35", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-28", folio: "2124" },
+            { nombre: "Isabel Contreras Ríos", curp: "CORI920303MDFNSL36", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-29", folio: "2126" },
+            { nombre: "Valeria Espinosa Fuentes", curp: "EAFV870707MDFSNL37", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-06-30", folio: "2128" },
+            { nombre: "Mariana Delgado Orozco", curp: "DEOM850505MDFLRR38", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-01", folio: "2130" },
+            { nombre: "Carmen Luna Vega", curp: "LUVG760404MDFNGR39", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-02", folio: "2132" },
+            { nombre: "Alejandra Cervantes Mora", curp: "CEMA900808MDFRRL40", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-03", folio: "2134" },
+            { nombre: "Rosa Elena Castro Díaz", curp: "CADR940303MDFSZS41", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-04", folio: "2136" },
+            { nombre: "Teresa Jiménez León", curp: "JILT801212MDFMNR42", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-05", folio: "2138" },
+            { nombre: "Verónica Aguirre Mejía", curp: "AUMV950101MDFGRR43", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-06", folio: "2140" },
+            { nombre: "Beatriz Sandoval Navarro", curp: "SANB880909MDFVRT44", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-07", folio: "2142" },
+            { nombre: "Natalia Ortega Castro", curp: "OECN910101MDFRTL45", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-08", folio: "2144" },
+            { nombre: "René Gómez Padilla", curp: "GOPR701212HDFMDN46", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-09", folio: "2146" },
+            { nombre: "Erika Lozano Méndez", curp: "LOME860606MDFZNR47", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-10", folio: "2148" },
+            { nombre: "Jaime Serrano Guzmán", curp: "SEGJ750505HDFRZM48", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-11", folio: "2150" },
+            { nombre: "Ximena Olvera Durán", curp: "OEDX990909MDFLRM49", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-12", folio: "2152" },
+            { nombre: "Rubén Velázquez Soto", curp: "VESR820202HDFLTB50", institucion: "Academia de negocios \"Alta pinta\"", fecha: "2025-07-13", folio: "2154" }
+        ];
+
+        // Función para cargar los datos en la tabla
+        function loadData() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            database.forEach((record, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${record.nombre}</td>
+                    <td>${record.curp}</td>
+                    <td>${record.institucion}</td>
+                    <td>${record.fecha}</td>
+                    <td>${record.folio}</td>
+                    <td class="verification-status"><input type="checkbox" onchange="toggleVerification(this, ${index})"></td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Función para buscar en los datos
+        function searchData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const name = cells[1].textContent.toLowerCase();
+                const curp = cells[2].textContent.toLowerCase();
+                const folio = cells[5].textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || curp.includes(searchTerm) || folio.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                    row.classList.add('highlight');
+                } else {
+                    row.style.display = 'none';
+                    row.classList.remove('highlight');
+                }
+            });
+            
+            document.getElementById('totalRecords').textContent = visibleCount;
+        }
+
+        // Función para limpiar la búsqueda
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            const rows = document.querySelectorAll('#tableBody tr');
+            
+            rows.forEach(row => {
+                row.style.display = '';
+                row.classList.remove('highlight');
+            });
+            
+            document.getElementById('totalRecords').textContent = database.length;
+        }
+
+        // Función para marcar como verificado
+        function toggleVerification(checkbox, index) {
+            const row = checkbox.closest('tr');
+            if (checkbox.checked) {
+                row.style.backgroundColor = '#e8f5e9';
+            } else {
+                row.style.backgroundColor = '';
+            }
+            updateVerifiedCount();
+        }
+
+        // Actualizar contador de verificados
+        function updateVerifiedCount() {
+            const checkedBoxes = document.querySelectorAll('#tableBody input[type="checkbox"]:checked');
+            document.getElementById('verifiedCount').textContent = checkedBoxes.length;
+        }
+
+        // Función para exportar a Excel
+        function exportToExcel() {
+            let csv = 'NOMBRE,CURP,INSTITUCION,FECHA,FOLIO,VERIFICADO\n';
+            
+            database.forEach((record, index) => {
+                const isChecked = document.querySelector(`#tableBody tr:nth-child(${index + 1}) input[type="checkbox"]`).checked;
+                csv += `"${record.nombre}","${record.curp}","${record.institucion}","${record.fecha}","${record.folio}","${isChecked ? 'Sí' : 'No'}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'base_de_datos_verificada.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Descargar el código QR
+        function downloadQR() {
+            const canvas = document.querySelector('#qrcode canvas');
+            const link = document.createElement('a');
+            link.download = 'codigo-qr-acceso.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Generar el QR cuando la página cargue
+        window.onload = function() {
+            loadData();
+            
+            // Obtener la URL actual
+            const currentUrl = window.location.href;
+            
+            // Crear el QR
+            new QRCode(document.getElementById("qrcode"), {
+                text: currentUrl,
+                width: 150,
+                height: 150,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        };
+    </script>
+</body>
+</html>
